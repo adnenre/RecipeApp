@@ -1,33 +1,55 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import React from "react";
+import { Tabs } from "expo-router";
+import { Feather } from "@expo/vector-icons";
+import { colors } from "../../src/theme";
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+// Define the type for tab bar icon props
+type TabBarIconProps = {
+  color: string;
+  size: number;
+  focused: boolean;
+};
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+        tabBarStyle: {
+          backgroundColor: "rgba(255,255,255,0.95)",
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          paddingBottom: 8,
+          height: 80,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontFamily: "DMMono_400Regular",
+          marginTop: 4,
+        },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.mutedForeground,
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "Accueil",
+          tabBarIcon: ({ color, size }: TabBarIconProps) => <Feather name="home" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="favorites"
+        options={{
+          title: "Favoris",
+          tabBarIcon: ({ color, size }: TabBarIconProps) => <Feather name="heart" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: "Explorer",
+          tabBarIcon: ({ color, size }: TabBarIconProps) => <Feather name="sliders" size={size} color={color} />,
         }}
       />
     </Tabs>

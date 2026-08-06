@@ -1,98 +1,277 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from "react";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Dimensions } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { useAppStore } from "../../src/store/useAppStore";
+import { RECIPES, CATEGORIES, FEATURED_ID } from "../../src/data/recipes";
+import { RecipeCard } from "../../src/components/common/RecipeCard";
+import { colors, typography, spacing } from "../../src/theme";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const { width } = Dimensions.get("window");
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const router = useRouter();
+  const [selectedCategory, setSelectedCategory] = useState("Tous");
+  const { favorites, toggleFavorite, setSelectedRecipe } = useAppStore();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const featured = RECIPES.find((r) => r.id === FEATURED_ID)!;
+  const filteredRecipes =
+    selectedCategory === "Tous"
+      ? RECIPES.filter((r) => r.id !== FEATURED_ID)
+      : RECIPES.filter((r) => r.category === selectedCategory && r.id !== FEATURED_ID);
+
+  const handleRecipeSelect = (recipe: any) => {
+    setSelectedRecipe(recipe);
+    router.push(`/recipe/${recipe.id}`);
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.greeting}>Bonjour, chef</Text>
+          <Text style={styles.title}>
+            Que cuisinez-vous <Text style={styles.titleItalic}>aujourd'hui ?</Text>
+          </Text>
+        </View>
+
+        <TouchableOpacity style={styles.searchBar} onPress={() => router.push("/search")}>
+          <Feather name="search" size={16} color={colors.mutedForeground} />
+          <Text style={styles.searchText}>Rechercher une recette…</Text>
+        </TouchableOpacity>
+
+        <View style={styles.featuredSection}>
+          <Text style={styles.sectionLabel}>À la une</Text>
+          <TouchableOpacity style={styles.featuredCard} onPress={() => handleRecipeSelect(featured)} activeOpacity={0.9}>
+            <Image source={{ uri: featured.image }} style={styles.featuredImage} />
+            <View style={styles.featuredOverlay}>
+              <View style={styles.featuredTags}>
+                {featured.tags.slice(0, 2).map((tag) => (
+                  <View key={tag} style={styles.featuredTag}>
+                    <Text style={styles.featuredTagText}>{tag}</Text>
+                  </View>
+                ))}
+              </View>
+              <Text style={styles.featuredTitle}>{featured.title}</Text>
+              <View style={styles.featuredMeta}>
+                <View style={styles.metaItem}>
+                  <Feather name="clock" size={12} color="rgba(255,255,255,0.8)" />
+                  <Text style={styles.featuredMetaText}>{featured.time}</Text>
+                </View>
+                <View style={styles.metaItem}>
+                  <Feather name="users" size={12} color="rgba(255,255,255,0.8)" />
+                  <Text style={styles.featuredMetaText}>{featured.servings} pers.</Text>
+                </View>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.featuredFavButton} onPress={() => toggleFavorite(featured.id)}>
+              <Feather
+                name="heart"
+                size={16}
+                color={favorites.has(featured.id) ? colors.white : colors.white}
+                fill={favorites.has(featured.id) ? colors.white : "none"}
+              />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoriesContainer}
+          contentContainerStyle={styles.categoriesContent}
+        >
+          {CATEGORIES.map((cat) => (
+            <TouchableOpacity
+              key={cat}
+              style={[styles.categoryButton, selectedCategory === cat && styles.categoryButtonActive]}
+              onPress={() => setSelectedCategory(cat)}
+            >
+              <Text style={[styles.categoryText, selectedCategory === cat && styles.categoryTextActive]}>{cat}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <View style={styles.recipesGrid}>
+          {filteredRecipes.length === 0 ? (
+            <Text style={styles.emptyText}>Aucune recette dans cette catégorie.</Text>
+          ) : (
+            filteredRecipes.map((recipe) => (
+              <RecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                onSelect={() => handleRecipeSelect(recipe)}
+                onToggleFav={() => toggleFavorite(recipe.id)}
+                isFav={favorites.has(recipe.id)}
+              />
+            ))
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxxl,
+    paddingBottom: spacing.lg,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
+  greeting: {
+    fontSize: 10,
+    color: colors.mutedForeground,
+    ...typography.monoSmall,
+    marginBottom: spacing.xs,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: colors.foreground,
+    ...typography.h1,
+  },
+  titleItalic: {
+    fontStyle: "italic",
+    color: colors.primary,
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchText: {
+    fontSize: 14,
+    color: colors.mutedForeground,
+    marginLeft: spacing.md,
+  },
+  featuredSection: {
+    paddingHorizontal: spacing.xl,
+    marginBottom: spacing.xxl,
+  },
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: "500",
+    color: colors.mutedForeground,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    ...typography.monoSmall,
+    marginBottom: spacing.md,
+  },
+  featuredCard: {
+    height: 208,
+    borderRadius: 24,
+    overflow: "hidden",
+    position: "relative",
+  },
+  featuredImage: {
+    width: "100%",
+    height: "100%",
+  },
+  featuredOverlay: {
+    position: "absolute",
     bottom: 0,
     left: 0,
-    position: 'absolute',
+    right: 0,
+    padding: spacing.xl,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  featuredTags: {
+    flexDirection: "row",
+    marginBottom: spacing.sm,
+  },
+  featuredTag: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 12,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    marginRight: spacing.sm,
+  },
+  featuredTagText: {
+    fontSize: 8,
+    color: "rgba(255,255,255,0.9)",
+    ...typography.monoSmall,
+  },
+  featuredTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: colors.white,
+    ...typography.h2,
+    marginBottom: spacing.sm,
+  },
+  featuredMeta: {
+    flexDirection: "row",
+  },
+  featuredMetaText: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.8)",
+    ...typography.monoSmall,
+    marginLeft: spacing.xs,
+  },
+  featuredFavButton: {
+    position: "absolute",
+    top: spacing.lg,
+    right: spacing.lg,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    borderRadius: 20,
+    padding: 10,
+  },
+  categoriesContainer: {
+    paddingHorizontal: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  categoriesContent: {
+    paddingRight: spacing.xl,
+  },
+  categoryButton: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 20,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginRight: spacing.sm,
+  },
+  categoryButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  categoryText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: colors.foreground,
+  },
+  categoryTextActive: {
+    color: colors.white,
+  },
+  recipesGrid: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: 100,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.mutedForeground,
+    textAlign: "center",
+    paddingVertical: spacing.xxxl,
+    width: "100%",
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: spacing.lg,
   },
 });

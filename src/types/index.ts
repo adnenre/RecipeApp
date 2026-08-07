@@ -27,11 +27,11 @@ export interface CookingMethod {
 
 export const COOKING_METHODS: CookingMethod[] = [
   { id: "four", label: "Four", icon: "thermometer", hasTemp: true },
-  { id: "gaz", label: "Gaz", icon: "flame", hasTemp: false },
+  { id: "gaz", label: "Gaz", icon: "life-buoy", hasTemp: false },
   { id: "induction", label: "Induction", icon: "zap", hasTemp: false },
   { id: "vapeur", label: "Vapeur", icon: "wind", hasTemp: true },
-  { id: "mijoteur", label: "Mijoteur", icon: "flame", hasTemp: false },
-  { id: "barbecue", label: "Barbecue", icon: "flame", hasTemp: false },
+  { id: "mijoteur", label: "Mijoteur", icon: "trash", hasTemp: false },
+  { id: "barbecue", label: "Barbecue", icon: "loader", hasTemp: false },
 ];
 
 export interface AppState {

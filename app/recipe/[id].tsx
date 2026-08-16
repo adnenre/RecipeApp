@@ -65,7 +65,7 @@ export default function RecipeScreen() {
 
           {/* Favorite Button */}
           <TouchableOpacity style={styles.favButton} onPress={() => toggleFavorite(String(recipe.id))}>
-            <HeartIcon size={24} color={colors.primary} fill="none" strokeWidth={2} />
+            <HeartIcon size={24} color={colors.primary} fill={isFav ? colors.primary : "none"} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 

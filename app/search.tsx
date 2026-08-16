@@ -1,28 +1,19 @@
 // app/search.tsx
-import React, { useState } from "react";
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useAppStore } from "../src/store/useAppStore";
-import { RECIPES } from "../src/data/recipes";
+import React, { useState } from "react";
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { RecipeCard } from "../src/components/common/RecipeCard";
-import { colors, typography, spacing } from "../src/theme";
+import { useAppStore } from "../src/store/useAppStore";
+import { colors, spacing } from "../src/theme";
 
 export default function SearchScreen() {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const { favorites, toggleFavorite, setSelectedRecipe } = useAppStore();
+  const { recipes: RECIPES, favorites, toggleFavorite, setSelectedRecipe } = useAppStore();
 
-  const results =
-    query.length > 1
-      ? RECIPES.filter(
-          (r) =>
-            r.title.toLowerCase().includes(query.toLowerCase()) ||
-            r.category.toLowerCase().includes(query.toLowerCase()) ||
-            r.tags.some((t) => t.toLowerCase().includes(query.toLowerCase())),
-        )
-      : [];
+  const results = query.length > 1 ? RECIPES.filter((r) => r.title.toLowerCase().includes(query.toLowerCase())) : [];
 
   const handleRecipeSelect = (recipe: any) => {
     setSelectedRecipe(recipe);

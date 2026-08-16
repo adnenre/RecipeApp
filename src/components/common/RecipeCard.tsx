@@ -1,10 +1,9 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet, Dimensions } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { colors, spacing, typography } from "../../theme";
 import { Recipe } from "../../types";
 import { getDifficultyLevel } from "../../utils/helpers";
-import { colors, typography, spacing } from "../../theme";
-
+import { HeartIcon } from "../common/Heart";
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 56) / 2;
 
@@ -23,7 +22,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSelect, onTogg
       <View style={styles.imageContainer}>
         <Image source={{ uri: recipe.image }} style={styles.image} />
         <TouchableOpacity onPress={onToggleFav} style={styles.favButton} activeOpacity={0.8}>
-          <Feather name="heart" size={16} color={isFav ? colors.primary : colors.mutedForeground} fill={isFav ? colors.primary : "none"} />
+          <HeartIcon size={16} color={isFav ? colors.primary : colors.mutedForeground} fill={isFav ? colors.primary : "none"} strokeWidth={2} />
         </TouchableOpacity>
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryText}>{recipe.category}</Text>

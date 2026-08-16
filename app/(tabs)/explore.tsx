@@ -1,18 +1,18 @@
-import React, { useState, useMemo } from "react";
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput } from "react-native";
-import Slider from "@react-native-community/slider"; // Add this import
 import { Feather } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Slider from "@react-native-community/slider"; // Add this import
 import { useRouter } from "expo-router";
-import { useAppStore } from "../../src/store/useAppStore";
-import { RECIPES, ALL_INGREDIENTS } from "../../src/data/recipes";
-import { COOKING_METHODS } from "../../src/types";
+import React, { useMemo, useState } from "react";
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { RecipeCard } from "../../src/components/common/RecipeCard";
-import { colors, typography, spacing } from "../../src/theme";
+import { ALL_INGREDIENTS } from "../../src/data/recipes";
+import { useAppStore } from "../../src/store/useAppStore";
+import { colors, spacing, typography } from "../../src/theme";
+import { COOKING_METHODS } from "../../src/types";
 
 export default function ExploreScreen() {
   const router = useRouter();
-  const { favorites, toggleFavorite, setSelectedRecipe } = useAppStore();
+  const { recipes: RECIPES, favorites, toggleFavorite, setSelectedRecipe } = useAppStore();
 
   const [selMethods, setSelMethods] = useState<Set<string>>(new Set());
   const [selIngredients, setSelIngredients] = useState<Set<string>>(new Set());

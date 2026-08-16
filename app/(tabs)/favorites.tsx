@@ -1,16 +1,15 @@
-import React from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
-import { Feather } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useAppStore } from "../../src/store/useAppStore";
-import { RECIPES } from "../../src/data/recipes";
+import React from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { HeartIcon } from "../../src/components/common/Heart";
 import { RecipeCard } from "../../src/components/common/RecipeCard";
-import { colors, typography, spacing } from "../../src/theme";
+import { useAppStore } from "../../src/store/useAppStore";
+import { colors, spacing, typography } from "../../src/theme";
 
 export default function FavoritesScreen() {
   const router = useRouter();
-  const { favorites, toggleFavorite, setSelectedRecipe } = useAppStore();
+  const { recipes: RECIPES, favorites, toggleFavorite, setSelectedRecipe } = useAppStore();
   const favRecipes = RECIPES.filter((r) => favorites.has(r.id));
 
   const handleRecipeSelect = (recipe: any) => {
@@ -30,7 +29,7 @@ export default function FavoritesScreen() {
 
         {favRecipes.length === 0 ? (
           <View style={styles.emptyState}>
-            <Feather name="heart" size={48} color={colors.mutedForeground} />
+            <HeartIcon size={48} color={colors.primary} fill={colors.primary} strokeWidth={1.5} />
             <Text style={styles.emptyText}>
               Aucune recette sauvegardée.{"\n"}
               Tapez ♥ sur une recette pour l'ajouter.

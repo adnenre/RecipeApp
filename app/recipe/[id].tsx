@@ -1,28 +1,30 @@
-// app/recipe/[id].tsx
-import React, { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useState } from "react";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { HeartIcon } from "../../src/components/common/Heart";
 import { useAppStore } from "../../src/store/useAppStore";
-import { RECIPES } from "../../src/data/recipes";
+import { colors, spacing, typography } from "../../src/theme";
 import { COOKING_METHODS } from "../../src/types";
 import { formatQtyLabel } from "../../src/utils/helpers";
-import { colors, typography, spacing } from "../../src/theme";
 
 export default function RecipeScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { favorites, toggleFavorite } = useAppStore();
+  const { recipes: RECIPES, favorites, toggleFavorite } = useAppStore();
 
-  const recipe = RECIPES.find((r) => r.id === Number(id));
-  const isFav = recipe ? favorites.has(recipe.id) : false;
+  // 🔥 Trouver la recette avec l'ID (string)
+  const recipe = RECIPES.find((r) => String(r.id) === id);
+  const isFav = recipe ? favorites.has(String(recipe.id)) : false;
 
   const [tab, setTab] = useState<"ingredients" | "steps">("ingredients");
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
   const [servings, setServings] = useState(recipe?.servings || 1);
   const [unitMode, setUnitMode] = useState<"g" | "bol">("g");
-  const [method, setMethod] = useState(recipe?.methods[0] ?? "");
+
+  // 🔥 Sécuriser l'accès à recipe.methods
+  const [method, setMethod] = useState(recipe?.methods?.[0] ?? "");
 
   if (!recipe) {
     return (
@@ -45,7 +47,8 @@ export default function RecipeScreen() {
     });
   };
 
-  const currentMethod = COOKING_METHODS.find((m) => m.id === method);
+  // 🔥 Sécuriser la recherche de la méthode
+  const currentMethod = COOKING_METHODS ? COOKING_METHODS.find((m) => m.id === method) : null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -61,15 +64,15 @@ export default function RecipeScreen() {
           </TouchableOpacity>
 
           {/* Favorite Button */}
-          <TouchableOpacity style={styles.favButton} onPress={() => toggleFavorite(recipe.id)}>
-            <Feather name="heart" size={24} color={isFav ? colors.primary : colors.foreground} fill={isFav ? colors.primary : "none"} />
+          <TouchableOpacity style={styles.favButton} onPress={() => toggleFavorite(String(recipe.id))}>
+            <HeartIcon size={24} color={colors.primary} fill="none" strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
           {/* Tags */}
           <View style={styles.tagsContainer}>
-            {recipe.tags.map((t) => (
+            {(recipe.tags || []).map((t) => (
               <View key={t} style={styles.tag}>
                 <Text style={styles.tagText}>{t}</Text>
               </View>
@@ -113,13 +116,13 @@ export default function RecipeScreen() {
               </View>
             </View>
 
-            {/* Cooking Methods */}
-            {recipe.methods.length > 0 && (
+            {/* 🔥 Cooking Methods - Sécurisé */}
+            {recipe.methods && recipe.methods.length > 0 && (
               <View style={styles.settingRow}>
                 <Text style={styles.settingLabel}>Mode de cuisson</Text>
                 <View style={styles.methodsContainer}>
                   {recipe.methods.map((mid) => {
-                    const m = COOKING_METHODS.find((cm) => cm.id === mid);
+                    const m = COOKING_METHODS ? COOKING_METHODS.find((cm) => cm.id === mid) : null;
                     if (!m) return null;
                     return (
                       <TouchableOpacity
@@ -161,7 +164,7 @@ export default function RecipeScreen() {
                   </Text>
                 </View>
               )}
-              {recipe.ingredients.map((ing, i) => (
+              {(recipe.ingredients || []).map((ing, i) => (
                 <View key={i} style={styles.ingredientItem}>
                   <Text style={styles.ingredientName}>{ing.name}</Text>
                   <Text style={styles.ingredientQty}>{formatQtyLabel(ing, recipe.servings, servings, unitMode)}</Text>
@@ -173,7 +176,7 @@ export default function RecipeScreen() {
           {/* Steps Tab */}
           {tab === "steps" && (
             <View style={styles.stepsContainer}>
-              {recipe.steps.map((step, i) => (
+              {(recipe.steps || []).map((step, i) => (
                 <TouchableOpacity key={i} style={[styles.stepItem, checkedSteps.has(i) && styles.stepItemChecked]} onPress={() => toggleStep(i)}>
                   <View style={styles.stepIcon}>
                     {checkedSteps.has(i) ? (

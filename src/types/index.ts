@@ -3,7 +3,7 @@ export type Tab = "ingredients" | "steps";
 export type Unit = "g" | "bol";
 
 export interface Recipe {
-  id: number;
+  id: string;
   title: string;
   category: string;
   time: string;
@@ -16,6 +16,7 @@ export interface Recipe {
   steps: string[];
   tags: string[];
   methods: string[];
+  featured?: boolean;
 }
 
 export interface CookingMethod {

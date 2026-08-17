@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import Slider from "@react-native-community/slider"; // Add this import
+import Slider from "@react-native-community/slider";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -8,7 +8,7 @@ import { RecipeCard } from "../../src/components/common/RecipeCard";
 import { ALL_INGREDIENTS } from "../../src/data/recipes";
 import { useAppStore } from "../../src/store/useAppStore";
 import { colors, spacing, typography } from "../../src/theme";
-import { COOKING_METHODS } from "../../src/types";
+import { COOKING_METHODS, getMethodIcon, getMethodLabel, type Recipe } from "../../src/types";
 
 export default function ExploreScreen() {
   const router = useRouter();
@@ -47,7 +47,7 @@ export default function ExploreScreen() {
         if (r.timeMin > maxTime) return false;
         return true;
       }),
-    [selMethods, selIngredients, maxTime],
+    [selMethods, selIngredients, maxTime, RECIPES],
   );
 
   const formatTime = (min: number) => {
@@ -59,7 +59,7 @@ export default function ExploreScreen() {
 
   const hasFilters = selMethods.size > 0 || selIngredients.size > 0 || maxTime < 240;
 
-  const handleRecipeSelect = (recipe: any) => {
+  const handleRecipeSelect = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
     router.push(`/recipe/${recipe.id}`);
   };
@@ -99,8 +99,8 @@ export default function ExploreScreen() {
                 const active = selMethods.has(m.id);
                 return (
                   <TouchableOpacity key={m.id} style={[styles.methodButton, active && styles.methodButtonActive]} onPress={() => toggleMethod(m.id)}>
-                    <Feather name={m.icon as any} size={16} color={active ? colors.primary : colors.mutedForeground} />
-                    <Text style={[styles.methodButtonText, active && styles.methodButtonTextActive]}>{m.label}</Text>
+                    <Feather name={getMethodIcon(m.id) as any} size={16} color={active ? colors.primary : colors.mutedForeground} />
+                    <Text style={[styles.methodButtonText, active && styles.methodButtonTextActive]}>{getMethodLabel(m.id)}</Text>
                     {active && <Feather name="check" size={12} color={colors.primary} />}
                   </TouchableOpacity>
                 );

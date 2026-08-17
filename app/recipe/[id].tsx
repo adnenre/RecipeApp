@@ -6,7 +6,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { HeartIcon } from "../../src/components/common/Heart";
 import { useAppStore } from "../../src/store/useAppStore";
 import { colors, spacing, typography } from "../../src/theme";
-import { COOKING_METHODS, type Ingredient } from "../../src/types";
+import {
+  COOKING_METHODS,
+  type Ingredient,
+  getMethodIcon,
+  getMethodLabel,
+  getMethodTemperature,
+  getPrimaryCookingMethod,
+  getRecipeCookingMethods,
+  methodHasTemp,
+} from "../../src/types";
 
 export default function RecipeScreen() {
   const router = useRouter();
@@ -53,8 +62,10 @@ export default function RecipeScreen() {
     });
   };
 
-  // 🔥 Sécuriser la recherche de la méthode
-  const currentMethod = COOKING_METHODS.find((m) => m.id === method);
+  // 🔥 Get cooking methods using helpers
+  const recipeMethods = getRecipeCookingMethods(recipe);
+  const primaryMethod = getPrimaryCookingMethod(recipe);
+  const currentMethod = primaryMethod || COOKING_METHODS.find((m) => m.id === method);
 
   // Calculate adjusted quantity based on servings
   const getAdjustedQuantity = (ingredient: Ingredient, baseServings: number, targetServings: number) => {
@@ -255,29 +266,24 @@ export default function RecipeScreen() {
               </View>
             </View>
 
-            {/* 🔥 Cooking Methods */}
-            {recipe.methods && recipe.methods.length > 0 && (
+            {/* 🔥 Cooking Methods - Using Helpers */}
+            {recipeMethods.length > 0 && (
               <View style={styles.settingRow}>
                 <Text style={styles.settingLabel}>Mode de cuisson</Text>
                 <View style={styles.methodsContainer}>
-                  {recipe.methods.map((mid: string) => {
-                    const m = COOKING_METHODS.find((cm) => cm.id === mid);
-                    if (!m) return null;
+                  {recipeMethods.map((m) => {
+                    const active = method === m.id;
                     return (
-                      <TouchableOpacity
-                        key={mid}
-                        style={[styles.methodButton, method === mid && styles.methodButtonActive]}
-                        onPress={() => setMethod(mid)}
-                      >
-                        <Feather name={m.icon as any} size={16} color={method === mid ? colors.white : colors.foreground} />
-                        <Text style={[styles.methodButtonText, method === mid && styles.methodButtonTextActive]}>{m.label}</Text>
+                      <TouchableOpacity key={m.id} style={[styles.methodButton, active && styles.methodButtonActive]} onPress={() => setMethod(m.id)}>
+                        <Feather name={getMethodIcon(m.id) as any} size={16} color={active ? colors.white : colors.foreground} />
+                        <Text style={[styles.methodButtonText, active && styles.methodButtonTextActive]}>{getMethodLabel(m.id)}</Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
-                {currentMethod?.hasTemp && (
+                {currentMethod && methodHasTemp(currentMethod.id) && (
                   <Text style={styles.tempText}>
-                    Température conseillée : <Text style={styles.tempValue}>180 °C</Text>
+                    Température conseillée : <Text style={styles.tempValue}>{getMethodTemperature(currentMethod.id)}</Text>
                   </Text>
                 )}
               </View>

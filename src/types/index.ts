@@ -1,19 +1,30 @@
 export type Screen = "home" | "recipe" | "favorites" | "search" | "explore";
 export type Tab = "ingredients" | "steps";
 export type Unit = "g" | "bol";
+export type Ingredient = {
+  name: string;
+  grams: number;
+  unit: string;
+};
 
+export type Step = {
+  text: string;
+  cooking?: boolean;
+  timerMin?: number;
+};
 export interface Recipe {
   id: string;
   title: string;
   category: string;
   time: string;
   timeMin: number;
+  duration: string;
   servings: number;
   difficulty: string;
   image: string;
   description: string;
-  ingredients: { qty: number | null; unit: string; name: string }[];
-  steps: string[];
+  ingredients: Ingredient[];
+  steps: Step[];
   tags: string[];
   methods: string[];
   featured?: boolean;

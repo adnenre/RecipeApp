@@ -4,28 +4,16 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { API_CONFIG } from "../config/api";
 import { Recipe } from "../types";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  labels: string[];
-  isAdmin: boolean;
-}
-
 interface AppState {
-  // État existant
+  // Favoris
   favorites: Set<string>;
+
+  // Navigation
   selectedRecipe: Recipe | null;
   currentScreen: string;
   prevScreen: string;
 
-  // Auth
-  user: User | null;
-  isAuthenticated: boolean;
-  authLoading: boolean;
-  authError: string | null;
-
-  // Recipes
+  // Recettes
   recipes: Recipe[];
   recipesLoading: boolean;
   recipesError: string | null;
@@ -37,10 +25,8 @@ interface AppState {
   setPrevScreen: (screen: string) => void;
   clearSelectedRecipe: () => void;
 
-  // Nouvelles actions
+  // Actions
   initializeApp: () => Promise<void>;
-  login: () => Promise<boolean>;
-  logout: () => void;
   fetchRecipes: () => Promise<void>;
   getRecipeById: (id: string) => Recipe | undefined;
 }
@@ -48,24 +34,16 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      // État existant
-      favorites: new Set<string>(), // 🔥 Set<string>
+      // État initial
+      favorites: new Set<string>(),
       selectedRecipe: null,
       currentScreen: "home",
       prevScreen: "home",
-
-      // Auth
-      user: null,
-      isAuthenticated: false,
-      authLoading: false,
-      authError: null,
-
-      // Recipes
       recipes: [],
       recipesLoading: false,
       recipesError: null,
 
-      // Actions existantes
+      // Basculer un favori
       toggleFavorite: (id: string) =>
         set((state) => {
           const newFavorites = new Set(state.favorites);
@@ -77,114 +55,29 @@ export const useAppStore = create<AppState>()(
           return { favorites: newFavorites };
         }),
 
+      // Actions de navigation
       setSelectedRecipe: (recipe: Recipe | null) => set({ selectedRecipe: recipe }),
       setCurrentScreen: (screen: string) => set({ currentScreen: screen }),
       setPrevScreen: (screen: string) => set({ prevScreen: screen }),
       clearSelectedRecipe: () => set({ selectedRecipe: null }),
 
-      // 🔐 Login automatique
-      login: async (): Promise<boolean> => {
-        if (get().authLoading) {
-          console.log("⏳ Login déjà en cours...");
-          return false;
-        }
-
-        set({ authLoading: true, authError: null });
-
-        try {
-          const { email, password } = API_CONFIG.credentials;
-
-          console.log("🔐 Tentative de connexion automatique...");
-
-          const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.login}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password }),
-          });
-
-          if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.message || "Échec de connexion");
-          }
-
-          const data = await response.json();
-
-          if (data.success && data.user) {
-            set({
-              user: data.user,
-              isAuthenticated: true,
-              authLoading: false,
-              authError: null,
-            });
-            console.log("✅ Connecté automatiquement - Utilisateur:", data.user.email);
-            return true;
-          } else {
-            throw new Error("Réponse de connexion invalide");
-          }
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : "Erreur de connexion";
-          console.error("❌ Erreur login:", errorMsg);
-          set({
-            authError: errorMsg,
-            authLoading: false,
-            isAuthenticated: false,
-          });
-          return false;
-        }
-      },
-
-      // 🚀 Initialisation complète
+      // Initialisation de l'application - charge les recettes
       initializeApp: async () => {
         console.log("🚀 Initialisation de l'application...");
 
-        const currentUser = get().user;
-        const currentAuth = get().isAuthenticated;
-
-        if (currentUser && currentAuth) {
-          console.log("🔑 Utilisateur déjà connecté:", currentUser.email);
-
-          if (get().recipes.length === 0 && !get().recipesLoading) {
-            await get().fetchRecipes();
-          }
-          return;
-        }
-
-        console.log("🔐 Aucun utilisateur, connexion automatique...");
-        const success = await get().login();
-
-        if (success) {
-          console.log("✅ Login réussi, chargement des recettes...");
+        if (get().recipes.length === 0 && !get().recipesLoading) {
+          console.log("📦 Chargement des recettes...");
           await get().fetchRecipes();
         } else {
-          console.error("❌ Échec du login automatique");
+          console.log(`✅ ${get().recipes.length} recettes déjà chargées`);
         }
       },
 
-      // 🚪 Déconnexion
-      logout: () => {
-        set({
-          user: null,
-          isAuthenticated: false,
-          recipes: [],
-          favorites: new Set<string>(),
-        });
-      },
-
-      // 📦 Récupérer les recettes
+      // Récupère toutes les recettes (GET public)
       fetchRecipes: async () => {
         if (get().recipesLoading) {
           console.log("⏳ Déjà en cours de chargement...");
           return;
-        }
-
-        if (!get().isAuthenticated) {
-          console.warn("⚠️ Non authentifié, tentative de login...");
-          const success = await get().login();
-          if (!success) {
-            console.error("❌ Échec du login, impossible de charger les recettes");
-            return;
-          }
-          return get().fetchRecipes();
         }
 
         set({ recipesLoading: true, recipesError: null });
@@ -198,17 +91,6 @@ export const useAppStore = create<AppState>()(
             },
           });
 
-          if (response.status === 401) {
-            console.warn("⚠️ Non autorisé, tentative de re-login...");
-            set({ isAuthenticated: false });
-            const success = await get().login();
-            if (success) {
-              return get().fetchRecipes();
-            }
-            set({ recipesLoading: false });
-            return;
-          }
-
           if (!response.ok) {
             throw new Error(`Erreur HTTP: ${response.status}`);
           }
@@ -216,20 +98,20 @@ export const useAppStore = create<AppState>()(
           const data = await response.json();
           const recipes: Recipe[] = Array.isArray(data) ? data : data.recipes || [];
 
-          // 🔥 S'assurer que les IDs sont des strings
+          // Normalise les IDs en strings
           const normalizedRecipes = recipes.map((recipe) => ({
             ...recipe,
-            id: String(recipe.id), // 🔥 Convertir l'ID en string
+            id: String(recipe.id),
           }));
 
-          // Si aucune recette n'a featured: true, définir la première comme featured
+          // Si aucune recette n'est en vedette, définir la première comme vedette
           let finalRecipes = normalizedRecipes;
           if (normalizedRecipes.length > 0 && !normalizedRecipes.some((r) => r.featured === true)) {
             finalRecipes = normalizedRecipes.map((r, index) => ({
               ...r,
               featured: index === 0,
             }));
-            console.log("⭐ Aucune recette featured, la première est définie comme À la une");
+            console.log("⭐ Aucune recette en vedette, la première est définie comme À la une");
           }
 
           console.log(`✅ ${finalRecipes.length} recettes chargées`);
@@ -249,7 +131,7 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-      // 📖 Helper
+      // Récupère une recette par son ID
       getRecipeById: (id: string) => {
         return get().recipes.find((r) => String(r.id) === id);
       },
@@ -259,14 +141,12 @@ export const useAppStore = create<AppState>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         favorites: Array.from(state.favorites),
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
+        // Optionnel: persister les recettes pour éviter de les recharger
+        // recipes: state.recipes,
       }),
       merge: (persistedState: any, currentState) => ({
         ...currentState,
         favorites: new Set(persistedState?.favorites || []),
-        user: persistedState?.user || null,
-        isAuthenticated: persistedState?.isAuthenticated || false,
       }),
     },
   ),

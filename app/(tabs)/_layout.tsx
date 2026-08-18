@@ -1,6 +1,8 @@
-import React from "react";
-import { Tabs } from "expo-router";
+// app/(tabs)/_layout.tsx
 import { Feather } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
+import React from "react";
+import { useTranslation } from "../../src/hooks/useTranslation";
 import { colors } from "../../src/theme";
 
 // Define the type for tab bar icon props
@@ -11,6 +13,8 @@ type TabBarIconProps = {
 };
 
 export default function TabLayout() {
+  const { t, isRTL } = useTranslation();
+
   return (
     <Tabs
       screenOptions={{
@@ -34,21 +38,21 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Accueil",
+          title: t("navHome"),
           tabBarIcon: ({ color, size }: TabBarIconProps) => <Feather name="home" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="favorites"
         options={{
-          title: "Favoris",
+          title: t("navFavs"),
           tabBarIcon: ({ color, size }: TabBarIconProps) => <Feather name="heart" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: "Explorer",
+          title: t("navExplore"),
           tabBarIcon: ({ color, size }: TabBarIconProps) => <Feather name="sliders" size={size} color={color} />,
         }}
       />

@@ -1,91 +1,72 @@
+// app/(tabs)/index.tsx
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Dimensions, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Composants
 import { RecipeCard } from "../../src/components/common/RecipeCard";
+import { LangPicker } from "../../src/components/LangPicker";
+
+// Store
 import { useAppStore } from "../../src/store/useAppStore";
+
+// Thème
 import { colors, spacing, typography } from "../../src/theme";
+
+// Utilitaires
+import { filterRecipesByCategory, formatRecipeMeta, getCategories, getFeaturedRecipe, getTranslatedCategory } from "../../src/utils/helpers";
+
+// Translation
+import { useTranslation } from "../../src/hooks/useTranslation";
 
 const { width } = Dimensions.get("window");
 
 export default function HomeScreen() {
+  // Router
   const router = useRouter();
+
+  // Translation
+  const { t, lang } = useTranslation();
+
+  // État local
   const [selectedCategory, setSelectedCategory] = useState("Tous");
   const [refreshing, setRefreshing] = useState(false);
 
-  // 🔥 Récupération depuis le store
-  const {
-    recipes,
-    recipesLoading,
-    recipesError,
-    authLoading,
-    authError,
-    isAuthenticated,
-    favorites,
-    toggleFavorite,
-    setSelectedRecipe,
-    fetchRecipes,
-    initializeApp,
-  } = useAppStore();
+  // Store
+  const { recipes, recipesLoading, recipesError, favorites, toggleFavorite, setSelectedRecipe, fetchRecipes, initializeApp } = useAppStore();
 
-  // 🔥 Initialisation automatique
+  // Initialisation
   useEffect(() => {
     initializeApp();
   }, []);
 
-  // 🔥 Fonction de rafraîchissement (pull-to-refresh)
+  // Rafraîchissement
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    console.log("🔄 Rafraîchissement manuel...");
     await fetchRecipes();
     setRefreshing(false);
   }, [fetchRecipes]);
 
-  // 🔥 États de chargement
-  if (authLoading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Connexion en cours...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  // Sélection d'une recette
+  const handleRecipeSelect = (recipe: any) => {
+    setSelectedRecipe(recipe);
+    router.push(`/recipe/${recipe.id}`);
+  };
 
-  if (authError && !isAuthenticated) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centerContainer}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>🔐</Text>
-          <Text style={styles.errorTitle}>Erreur de connexion</Text>
-          <Text style={styles.errorText}>{authError}</Text>
-          <TouchableOpacity onPress={initializeApp} style={styles.retryButton}>
-            <Text style={styles.retryButtonText}>Réessayer</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  // Données calculées
+  const featured = getFeaturedRecipe(recipes);
+  const categories = getCategories(recipes);
+  const filteredRecipes = filterRecipesByCategory(recipes, selectedCategory, featured?.id);
 
-  if (!isAuthenticated) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Connexion en cours...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
+  // États de chargement et d'erreur
   if (recipesLoading && recipes.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Chargement des recettes...</Text>
+          <Text style={styles.loadingText}>{t("searchHint", 0)}</Text>
         </View>
       </SafeAreaView>
     );
@@ -95,39 +76,16 @@ export default function HomeScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContainer}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>😅</Text>
-          <Text style={styles.errorTitle}>Erreur de chargement</Text>
+          <Text style={styles.errorEmoji}>😅</Text>
+          <Text style={styles.errorTitle}>{t("noResults")}</Text>
           <Text style={styles.errorText}>{recipesError}</Text>
           <TouchableOpacity onPress={fetchRecipes} style={styles.retryButton}>
-            <Text style={styles.retryButtonText}>Réessayer</Text>
+            <Text style={styles.retryButtonText}>{t("reset")}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
-
-  // 🔥 Données dynamiques depuis le store
-  const featured = recipes.length > 0 ? recipes.find((r) => r.featured) || recipes[0] : null;
-  const categories = ["Tous", ...new Set(recipes.map((r) => r.category))];
-
-  const filteredRecipes =
-    selectedCategory === "Tous"
-      ? recipes.filter((r) => featured && r.id !== featured.id)
-      : recipes.filter((r) => r.category === selectedCategory && featured && r.id !== featured.id);
-
-  const handleRecipeSelect = (recipe: any) => {
-    setSelectedRecipe(recipe);
-    router.push(`/recipe/${recipe.id}`);
-  };
-
-  // 🔥 Affichage du temps (supporte les deux formats)
-  const getDisplayTime = (recipe: any) => {
-    if (recipe.time) return recipe.time;
-    if (recipe.prepTime && recipe.cookTime) {
-      return `${recipe.prepTime} + ${recipe.cookTime}`;
-    }
-    return "N/A";
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -137,84 +95,76 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[colors.primary]} // Android
-            tintColor={colors.primary} // iOS
-            title="Rafraîchissement..."
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+            title={t("reset")}
             titleColor={colors.mutedForeground}
           />
         }
       >
-        <View style={styles.header}>
-          <Text style={styles.greeting}>Bonjour, chef</Text>
-          <Text style={styles.title}>
-            Que cuisinez-vous <Text style={styles.titleItalic}>aujourd'hui ?</Text>
-          </Text>
+        {/* En-tête avec LangPicker */}
+        <View style={styles.headerContainer}>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.greeting}>{t("greeting")}</Text>
+              <Text style={styles.title}>
+                {t("tagline1")} <Text style={styles.titleItalic}>{t("tagline2")}</Text>
+              </Text>
+            </View>
+            <View style={styles.headerRight}>
+              <LangPicker />
+            </View>
+          </View>
         </View>
 
-        <TouchableOpacity style={styles.searchBar} onPress={() => router.push("/search")}>
+        {/* Barre de recherche */}
+        <TouchableOpacity style={styles.searchBar} onPress={() => router.push("/search")} activeOpacity={0.7}>
           <Feather name="search" size={16} color={colors.mutedForeground} />
-          <Text style={styles.searchText}>Rechercher une recette…</Text>
+          <Text style={styles.searchText}>{t("searchPlaceholder")}</Text>
         </TouchableOpacity>
 
+        {/* Section À la une */}
         <View style={styles.featuredSection}>
-          <Text style={styles.sectionLabel}>À la une</Text>
+          <Text style={styles.sectionLabel}>{t("featured")}</Text>
           {featured ? (
-            <TouchableOpacity style={styles.featuredCard} onPress={() => handleRecipeSelect(featured)} activeOpacity={0.9}>
-              <Image source={{ uri: featured.image }} style={styles.featuredImage} />
-              <View style={styles.featuredOverlay}>
-                <View style={styles.featuredTags}>
-                  {featured.tags?.slice(0, 2).map((tag) => (
-                    <View key={tag} style={styles.featuredTag}>
-                      <Text style={styles.featuredTagText}>{tag}</Text>
-                    </View>
-                  ))}
-                </View>
-                <Text style={styles.featuredTitle}>{featured.title}</Text>
-                <View style={styles.featuredMeta}>
-                  <View style={styles.metaItem}>
-                    <Feather name="clock" size={12} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.featuredMetaText}>{getDisplayTime(featured)}</Text>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <Feather name="users" size={12} color="rgba(255,255,255,0.8)" />
-                    <Text style={styles.featuredMetaText}>{featured.servings} pers.</Text>
-                  </View>
-                </View>
-              </View>
-              <TouchableOpacity style={styles.featuredFavButton} onPress={() => toggleFavorite(featured.id)}>
-                <Feather
-                  name="heart"
-                  size={16}
-                  color={favorites.has(featured.id) ? colors.white : colors.white}
-                  fill={favorites.has(featured.id) ? colors.white : colors.primary}
-                />
-              </TouchableOpacity>
-            </TouchableOpacity>
+            <FeaturedRecipeCard
+              recipe={featured}
+              isFavorite={favorites.has(featured.id)}
+              onSelect={() => handleRecipeSelect(featured)}
+              onToggleFavorite={() => toggleFavorite(featured.id)}
+            />
           ) : (
-            <Text style={styles.emptyText}>Aucune recette disponible</Text>
+            <Text style={styles.emptyText}>{t("noResults")}</Text>
           )}
         </View>
 
+        {/* Catégories */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.categoriesContainer}
           contentContainerStyle={styles.categoriesContent}
         >
-          {categories.map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              style={[styles.categoryButton, selectedCategory === cat && styles.categoryButtonActive]}
-              onPress={() => setSelectedCategory(cat)}
-            >
-              <Text style={[styles.categoryText, selectedCategory === cat && styles.categoryTextActive]}>{cat}</Text>
-            </TouchableOpacity>
-          ))}
+          {categories.map((cat) => {
+            // Translate the category name
+            const translatedCat = getTranslatedCategory(cat, lang);
+            return (
+              <TouchableOpacity
+                key={cat}
+                style={[styles.categoryButton, selectedCategory === cat && styles.categoryButtonActive]}
+                onPress={() => setSelectedCategory(cat)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.categoryText, selectedCategory === cat && styles.categoryTextActive]}>{translatedCat}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
+        {/* Grille de recettes */}
         <View style={styles.recipesGrid}>
           {filteredRecipes.length === 0 ? (
-            <Text style={styles.emptyText}>Aucune recette dans cette catégorie.</Text>
+            <Text style={styles.emptyText}>{t("noResults")}</Text>
           ) : (
             filteredRecipes.map((recipe) => (
               <RecipeCard
@@ -232,7 +182,54 @@ export default function HomeScreen() {
   );
 }
 
-// ✅ STYLES INCHANGÉS
+// Composant: Carte de la recette en vedette
+function FeaturedRecipeCard({
+  recipe,
+  isFavorite,
+  onSelect,
+  onToggleFavorite,
+}: {
+  recipe: any;
+  isFavorite: boolean;
+  onSelect: () => void;
+  onToggleFavorite: () => void;
+}) {
+  const { t } = useTranslation();
+  const meta = formatRecipeMeta(recipe);
+
+  return (
+    <TouchableOpacity style={styles.featuredCard} onPress={onSelect} activeOpacity={0.9}>
+      <Image source={{ uri: recipe.image }} style={styles.featuredImage} />
+      <View style={styles.featuredOverlay}>
+        <View style={styles.featuredTags}>
+          {meta.tags.map((tag) => (
+            <View key={tag} style={styles.featuredTag}>
+              <Text style={styles.featuredTagText}>{tag}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.featuredTitle}>{recipe.title}</Text>
+        <View style={styles.featuredMeta}>
+          <View style={styles.metaItem}>
+            <Feather name="clock" size={12} color="rgba(255,255,255,0.8)" />
+            <Text style={styles.featuredMetaText}>{meta.time}</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Feather name="users" size={12} color="rgba(255,255,255,0.8)" />
+            <Text style={styles.featuredMetaText}>
+              {meta.servings} {t("servingsSuffix")}
+            </Text>
+          </View>
+        </View>
+      </View>
+      <TouchableOpacity style={styles.featuredFavButton} onPress={onToggleFavorite} activeOpacity={0.7}>
+        <Feather name="heart" size={16} color={isFavorite ? colors.white : colors.white} fill={isFavorite ? colors.white : colors.primary} />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+}
+
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -248,6 +245,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     fontSize: 16,
     color: colors.mutedForeground,
+  },
+  errorEmoji: {
+    fontSize: 48,
+    marginBottom: 16,
   },
   errorTitle: {
     fontSize: 20,
@@ -272,10 +273,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  header: {
+  headerContainer: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xxxl,
     paddingBottom: spacing.lg,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    paddingTop: 4,
   },
   greeting: {
     fontSize: 10,

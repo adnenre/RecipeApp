@@ -1,9 +1,11 @@
+// app/recipe/[id].tsx
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { HeartIcon } from "../../src/components/common/Heart";
+import { useTranslation } from "../../src/hooks/useTranslation";
 import { useAppStore } from "../../src/store/useAppStore";
 import { colors, spacing, typography } from "../../src/theme";
 import {
@@ -20,6 +22,7 @@ import {
 export default function RecipeScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { t, isRTL } = useTranslation();
   const { recipes: RECIPES, favorites, toggleFavorite } = useAppStore();
 
   // 🔥 Trouver la recette avec l'ID (string)
@@ -45,9 +48,9 @@ export default function RecipeScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Recette non trouvée</Text>
+          <Text style={styles.errorText}>{t("recipeNotFound")}</Text>
           <TouchableOpacity onPress={() => router.back()} style={styles.errorButton}>
-            <Text style={styles.errorButtonText}>Retour</Text>
+            <Text style={styles.errorButtonText}>{t("back")}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -81,29 +84,30 @@ export default function RecipeScreen() {
   // ✅ SAFE: Format the ingredient quantity - ALWAYS returns a string
   const formatIngredientQty = (ingredient: any, baseServings: number, targetServings: number, unitMode: "g" | "bol") => {
     if (!ingredient || typeof ingredient !== "object") {
-      return "0 g";
+      return `0 ${t("unitG")}`;
     }
 
     try {
       const adjustedQty = getAdjustedQuantity(ingredient, baseServings, targetServings);
 
       if (typeof adjustedQty !== "number" || isNaN(adjustedQty) || !isFinite(adjustedQty)) {
-        return "0 g";
+        return `0 ${t("unitG")}`;
       }
 
       const formattedQty = adjustedQty % 1 === 0 ? Math.round(adjustedQty) : adjustedQty.toFixed(1);
 
       if (unitMode === "bol" && ingredient.unit === "g") {
         const bols = adjustedQty / 250;
-        if (isNaN(bols) || !isFinite(bols)) return "0 bol";
-        return bols % 1 === 0 ? `${Math.round(bols)} bol` : `${bols.toFixed(1)} bol`;
+        if (isNaN(bols) || !isFinite(bols)) return `0 ${t("unitBol")}`;
+        const bolsDisplay = bols % 1 === 0 ? Math.round(bols) : bols.toFixed(1);
+        return `${bolsDisplay} ${t("unitBol")}`;
       }
 
-      const unit = ingredient.unit || "g";
+      const unit = ingredient.unit || t("unitG");
       return `${formattedQty} ${unit}`;
     } catch (error) {
       console.warn("Error formatting ingredient qty:", error);
-      return "0 g";
+      return `0 ${t("unitG")}`;
     }
   };
 
@@ -125,9 +129,9 @@ export default function RecipeScreen() {
         return ingredients
           .filter((ing) => ing && typeof ing === "object")
           .map((ing) => ({
-            name: String(ing.name || "Ingrédient"),
+            name: String(ing.name || t("ingredient")),
             grams: typeof ing.grams === "number" ? ing.grams : 0,
-            unit: String(ing.unit || "g"),
+            unit: String(ing.unit || t("unitG")),
           }));
       }
       return [];
@@ -135,7 +139,7 @@ export default function RecipeScreen() {
       console.warn("Error parsing ingredients:", error);
       return [];
     }
-  }, [recipe]);
+  }, [recipe, t]);
 
   // ✅ SAFE: Get safe steps array with proper string conversion
   const safeSteps = useMemo(() => {
@@ -152,18 +156,14 @@ export default function RecipeScreen() {
       }
 
       if (Array.isArray(steps)) {
-        return (
-          steps
-            .filter((step) => step && typeof step === "object")
-            .map((step) => ({
-              // ✅ ALWAYS convert to string with fallback
-              text: String(step.text || ""),
-              cooking: typeof step.cooking === "boolean" ? step.cooking : false,
-              timerMin: typeof step.timerMin === "number" ? step.timerMin : 0,
-            }))
-            // ✅ Filter out steps with empty text after conversion
-            .filter((step) => step.text.trim().length > 0)
-        );
+        return steps
+          .filter((step) => step && typeof step === "object")
+          .map((step) => ({
+            text: String(step.text || ""),
+            cooking: typeof step.cooking === "boolean" ? step.cooking : false,
+            timerMin: typeof step.timerMin === "number" ? step.timerMin : 0,
+          }))
+          .filter((step) => step.text.trim().length > 0);
       }
       return [];
     } catch (error) {
@@ -175,13 +175,13 @@ export default function RecipeScreen() {
   // ✅ Safe render function for step text
   const renderStepText = (text: string) => {
     const safeText = String(text || "");
-    return safeText || "Étape vide";
+    return safeText || t("emptyStep");
   };
 
   // ✅ Safe render function for timer text
   const renderTimerText = (timerMin: number) => {
     const safeTimer = typeof timerMin === "number" && !isNaN(timerMin) ? timerMin : 0;
-    return `${safeTimer} min`;
+    return `${safeTimer} ${t("min")}`;
   };
 
   return (
@@ -206,15 +206,15 @@ export default function RecipeScreen() {
         <View style={styles.content}>
           {/* Tags */}
           <View style={styles.tagsContainer}>
-            {(recipe.tags || []).map((t: string) => (
-              <View key={t} style={styles.tag}>
-                <Text style={styles.tagText}>{String(t)}</Text>
+            {(recipe.tags || []).map((tag: string) => (
+              <View key={tag} style={styles.tag}>
+                <Text style={styles.tagText}>{String(tag)}</Text>
               </View>
             ))}
           </View>
 
           {/* Title & Description */}
-          <Text style={styles.title}>{String(recipe.title || "Recette")}</Text>
+          <Text style={styles.title}>{String(recipe.title || t("recipe"))}</Text>
           <Text style={styles.description}>{String(recipe.description || "")}</Text>
 
           {/* Stats Row */}
@@ -225,51 +225,55 @@ export default function RecipeScreen() {
             </View>
             <View style={styles.statItem}>
               <Feather name="users" size={16} color={colors.mutedForeground} />
-              <Text style={styles.statText}>{String(recipe.servings || 1)} pers.</Text>
+              <Text style={styles.statText}>
+                {String(recipe.servings || 1)} {t("servingsSuffix")}
+              </Text>
             </View>
             <View style={styles.statItem}>
               <Feather name="activity" size={16} color={colors.mutedForeground} />
-              <Text style={styles.statText}>{String(recipe.difficulty || "Facile")}</Text>
+              <Text style={styles.statText}>{String(recipe.difficulty || t("easy"))}</Text>
             </View>
           </View>
 
-          {/* Settings Container */}
-          <View style={styles.settingsContainer}>
-            {/* Servings */}
-            <View style={styles.settingRow}>
-              <View>
-                <Text style={styles.settingLabel}>Personnes</Text>
-                <Text style={styles.settingValue}>{String(servings)} pers.</Text>
-              </View>
-              <View style={styles.quantityControls}>
-                <TouchableOpacity style={styles.quantityButton} onPress={() => setServings((v) => Math.max(1, v - 1))}>
-                  <Feather name="minus" size={16} color={colors.foreground} />
-                </TouchableOpacity>
-                <Text style={styles.quantityText}>{String(servings)}</Text>
-                <TouchableOpacity style={styles.quantityButton} onPress={() => setServings((v) => Math.min(20, v + 1))}>
-                  <Feather name="plus" size={16} color={colors.foreground} />
-                </TouchableOpacity>
-              </View>
+          <View style={styles.personNumber}>
+            <View>
+              <Text style={styles.settingLabel}>{t("servingsLabel")}</Text>
+              <Text style={styles.settingValue}>
+                {String(servings)} {t("servingsSuffix")}
+              </Text>
             </View>
+            <View style={styles.quantityControls}>
+              <TouchableOpacity style={styles.quantityButton} onPress={() => setServings((v) => Math.max(1, v - 1))}>
+                <Feather name="minus" size={16} color={colors.foreground} />
+              </TouchableOpacity>
+              <Text style={styles.quantityText}>{String(servings)}</Text>
+              <TouchableOpacity style={styles.quantityButton} onPress={() => setServings((v) => Math.min(20, v + 1))}>
+                <Feather name="plus" size={16} color={colors.foreground} />
+              </TouchableOpacity>
+            </View>
+          </View>
 
-            {/* Unit */}
+          <View style={styles.mesureUnit}>
             <View style={styles.settingRow}>
-              <Text style={styles.settingLabel}>Unité de mesure</Text>
+              <Text style={styles.settingLabel}>{t("unitLabel")}</Text>
               <View style={styles.unitContainer}>
                 {(["g", "bol"] as ("g" | "bol")[]).map((u) => (
                   <TouchableOpacity key={u} style={[styles.unitButton, unitMode === u && styles.unitButtonActive]} onPress={() => setUnitMode(u)}>
                     <Text style={[styles.unitButtonText, unitMode === u && styles.unitButtonTextActive]}>
-                      {u === "g" ? "Grammes / ml" : "Bols (250 ml)"}
+                      {u === "g" ? t("unitG") : t("unitBol")}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
+          </View>
 
+          {/* Settings Container */}
+          <View style={styles.cookingCard}>
             {/* 🔥 Cooking Methods - Using Helpers */}
             {recipeMethods.length > 0 && (
               <View style={styles.settingRow}>
-                <Text style={styles.settingLabel}>Mode de cuisson</Text>
+                <Text style={styles.settingLabel}>{t("cookingMethodLabel")}</Text>
                 <View style={styles.methodsContainer}>
                   {recipeMethods.map((m) => {
                     const active = method === m.id;
@@ -283,18 +287,20 @@ export default function RecipeScreen() {
                 </View>
                 {currentMethod && methodHasTemp(currentMethod.id) && (
                   <Text style={styles.tempText}>
-                    Température conseillée : <Text style={styles.tempValue}>{getMethodTemperature(currentMethod.id)}</Text>
+                    {t("tempLabel")} : <Text style={styles.tempValue}>{getMethodTemperature(currentMethod.id)}</Text>
                   </Text>
                 )}
               </View>
             )}
           </View>
 
-          {/* Tabs */}
+          {/* Tabs - FIXED: renamed 't' to 'tabKey' to avoid conflict with translation function */}
           <View style={styles.tabsContainer}>
-            {(["ingredients", "steps"] as ("ingredients" | "steps")[]).map((t) => (
-              <TouchableOpacity key={t} style={[styles.tabButton, tab === t && styles.tabButtonActive]} onPress={() => setTab(t)}>
-                <Text style={[styles.tabButtonText, tab === t && styles.tabButtonTextActive]}>{t === "ingredients" ? "Ingrédients" : "Étapes"}</Text>
+            {(["ingredients", "steps"] as ("ingredients" | "steps")[]).map((tabKey) => (
+              <TouchableOpacity key={tabKey} style={[styles.tabButton, tab === tabKey && styles.tabButtonActive]} onPress={() => setTab(tabKey)}>
+                <Text style={[styles.tabButtonText, tab === tabKey && styles.tabButtonTextActive]}>
+                  {tabKey === "ingredients" ? t("ingredientsTab") : t("stepsTab")}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -304,21 +310,19 @@ export default function RecipeScreen() {
             <View style={styles.ingredientsContainer}>
               {servings !== recipe.servings && (
                 <View style={styles.adjustmentNotice}>
-                  <Text style={styles.adjustmentText}>
-                    Quantités ajustées pour {String(servings)} pers. (base {String(recipe.servings)})
-                  </Text>
+                  <Text style={styles.adjustmentText}>{t("adjustedQty", servings, recipe.servings)}</Text>
                 </View>
               )}
               {safeIngredients.length > 0 ? (
                 safeIngredients.map((ing, i) => (
                   <View key={i} style={styles.ingredientItem}>
-                    <Text style={styles.ingredientName}>{String(ing.name || "Ingrédient")}</Text>
+                    <Text style={styles.ingredientName}>{String(ing.name || t("ingredient"))}</Text>
                     <Text style={styles.ingredientQty}>{formatIngredientQty(ing, recipe.servings, servings, unitMode)}</Text>
                   </View>
                 ))
               ) : (
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>Aucun ingrédient disponible</Text>
+                  <Text style={styles.emptyText}>{t("noIngredients")}</Text>
                 </View>
               )}
             </View>
@@ -339,17 +343,19 @@ export default function RecipeScreen() {
                     </View>
                     <View style={styles.stepContent}>
                       <View style={styles.stepHeader}>
-                        <Text style={styles.stepNumber}>Étape {String(i + 1)}</Text>
+                        <Text style={styles.stepNumber}>
+                          {t("stepPrefix")} {String(i + 1)}
+                        </Text>
                         {step.cooking === true && (
                           <View style={styles.cookingBadge}>
                             <Feather name="zap" size={12} color={colors.primary} />
-                            <Text style={styles.cookingBadgeText}>Cuisson</Text>
+                            <Text style={styles.cookingBadgeText}>{t("cooking")}</Text>
                           </View>
                         )}
                         {typeof step.timerMin === "number" && step.timerMin > 0 && (
                           <View style={styles.timerBadge}>
                             <Feather name="clock" size={12} color={colors.mutedForeground} />
-                            <Text style={styles.timerBadgeText}>{String(step.timerMin)} min</Text>
+                            <Text style={styles.timerBadgeText}>{renderTimerText(step.timerMin)}</Text>
                           </View>
                         )}
                       </View>
@@ -359,7 +365,7 @@ export default function RecipeScreen() {
                 ))
               ) : (
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>Aucune étape disponible</Text>
+                  <Text style={styles.emptyText}>{t("noSteps")}</Text>
                 </View>
               )}
             </View>
@@ -449,6 +455,32 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 16,
     padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  personNumber: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  mesureUnit: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  cookingCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
     marginBottom: spacing.xl,
   },
   statItem: {
@@ -471,9 +503,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.xl,
   },
-  settingRow: {
-    marginBottom: spacing.lg,
-  },
+  settingRow: {},
   settingLabel: {
     fontSize: 10,
     color: colors.mutedForeground,
